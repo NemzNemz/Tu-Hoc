@@ -7,3 +7,4 @@ Bao gồm:
 
 Mục tiêu: xây dựng hệ thống đo khoảng cách cơ bản với STM32F103C8T6, xuất dữ liệu qua LCD hoặc Serial.
 
+<img width="1440" height="2560" alt="image" src="https://github.com/user-attachments/assets/c25ef4ab-a8bf-44a2-9d5d-9f312e4f0a9a" />
