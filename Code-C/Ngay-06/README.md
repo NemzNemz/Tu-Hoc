@@ -14,3 +14,7 @@ Các bài tập trong ngày 06 tập trung rèn luyện cấu trúc lặp trong 
 - Phân biệt các loại vòng lặp và phạm vi sử dụng.
 - Viết được các mô hình lặp có điều kiện dừng linh hoạt.
 - Làm quen với tư duy lặp lồng nhau qua bài 15–21.
+## Cập nhật mới  
+Thêm 5 bài luyện tập Looping Statements (22–26):  
+- Bài 22 → 26: luyện tập vòng lặp for, while, nested loops nâng cao.  
+- Ngày thực hiện: 21/10/2025.
