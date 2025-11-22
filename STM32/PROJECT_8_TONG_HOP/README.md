@@ -44,13 +44,14 @@ Dựa trên CNT của TIM1 (polling).
 Đảm bảo độ chính xác cần thiết cho giao thức LCD và DHT11.
 
 2. Ảnh minh họa mạch
+
 ![PROJECT_8_TONG_HOP Breadboard](./z7252566799306_043bf802b35eb10ef86327f3d4349c87.jpg)
 
-3. File quan trọng
+4. File quan trọng
 main.c – chứa toàn bộ ADC + PWM + LCD + DHT11 + delay_us
 Không sử dụng bất kỳ library LCD hay DHT11 có sẵn.
 Các hàm được nhóm theo từng module để dễ mở rộng.
-4. Ghi chú
+5. Ghi chú
 Mốc PWM là 16-bit (0–65535).
 LCD sử dụng 8-bit song song, phải đảm bảo timing chuẩn (t_AS, t_DSW, t_H…).
 DHT11 yêu cầu độ chính xác delay_us cao, vì vậy delay phải dựa vào timer thay vì HAL_Delay.
