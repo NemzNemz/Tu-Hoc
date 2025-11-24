@@ -1,0 +1,77 @@
+# PROJECT 10 – I2C MPU6050 (Accelerometer + Gyroscope)
+
+Dự án này sử dụng vi điều khiển **STM32F103C8T6** để giao tiếp với cảm biến **MPU6050** thông qua chuẩn **I2C1** (100kHz). Mục tiêu là đọc dữ liệu gia tốc, con quay và tính toán góc nghiêng **pitch** và **roll** bằng thuật toán **Complementary Filter**.
+
+---
+
+## 1. Chức năng chính
+
+### (1) Cấu hình I2C1
+
+* Chuẩn giao tiếp: I2C ở tốc độ chuẩn 100kHz.
+* Địa chỉ MPU6050: `0x68`.
+* Kiểm tra kết nối bằng WHO_AM_I.
+
+### (2) Cấu hình các thanh ghi MPU6050
+
+Các thanh ghi được cấu hình thủ công:
+
+* `PWR_MGMT_1` – bật sensor
+* `SMPLRT_DIV` – chia tần số lấy mẫu
+* `GYRO_CONFIG` – dải đo con quay ±250°/s
+* `ACCEL_CONFIG` – dải đo gia tốc ±2g
+
+### (3) Đọc dữ liệu cảm biến
+
+Đọc đủ 14 byte từ MPU6050:
+
+* 6 byte accel (X, Y, Z)
+* 6 byte gyro (X, Y, Z)
+* 2 byte temperature (bỏ qua trong tính toán)
+
+Quy đổi:
+
+* **Accel_raw / 16384** → gia tốc tính theo đơn vị *g*
+* **Gyro_raw / 131** → vận tốc góc °/s
+
+### (4) Tính toán góc nghiêng
+
+Sử dụng **Complementary Filter**:
+
+```
+pitch = 0.98*(pitch + gyroX*dt) + 0.02*accelPitch
+roll  = 0.98*(roll  + gyroY*dt) + 0.02*accelRoll
+```
+
+### (5) Xuất dữ liệu
+
+* Góc `pitch`, `roll` được tính liên tục.
+* Dùng vòng lặp 5ms để cập nhật.
+
+---
+
+## 2. Cấu trúc file chính
+
+Chỉ có một file quan trọng cần upload:
+
+* **main.c** – chứa toàn bộ giao tiếp I2C, đọc MPU6050, xử lý và tính toán góc.
+
+---
+
+## 3. Điểm kỹ thuật đáng chú ý
+
+* Không sử dụng bất kỳ thư viện MPU6050 ngoài nào.
+* Hoàn toàn tự viết hàm đọc/ghi I2C.
+* Đảm bảo đủ delay khi cấu hình thanh ghi.
+* Dùng `HAL_GetTick()` để tính `dt` cho Complementary Filter.
+
+---
+
+## 4. Kiến thức đạt được
+
+* Hiểu giao thức I2C mức thanh ghi.
+* Tự cấu hình MPU6050 từ đầu.
+* Tính góc từ gia tốc & con quay: Gyro drift & Accel noise.
+* Ứng dụng Complementary Filter trong hệ thống thực.
+
+---
