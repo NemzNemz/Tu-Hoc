@@ -9,3 +9,9 @@
 - Test DHT11 hoàn tất
 - Chuyển DHT11 sang LIB (DHT11.c/.h)
 
+## D2 – 13/12/2025
+- Cấu hình PA1 làm output cho LED và loa
+- Cấu hình PB8 làm input cho Echo (HC-SR04)
+- Cấu hình PB9 làm output cho Trig (HC-SR04)
+- Hoàn tất thuật toán đo khoảng cách HC-SR04 dựa trên datasheet
+- Chưa chuyển code HC-SR04 thành thư viện
