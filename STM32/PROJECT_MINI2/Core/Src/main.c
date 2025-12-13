@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "DHT11.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -41,8 +40,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-I2C_HandleTypeDef hi2c1;
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 
@@ -51,16 +50,74 @@ TIM_HandleTypeDef htim1;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#define	SPEARKER					GPIO_PIN_1	//PA1
+#define SPEARKER_PORT			GPIOA
+#define TRIG_PIN 					GPIO_PIN_9	//PB9
+#define	TRIG_PORT					GPIOB
+#define ECHO_PIN 					GPIO_PIN_8	//PB8
+#define ECHO_PORT					GPIOB
 
- 
+volatile float test = 0;
+uint32_t test2;
+//API
+void HC_SR04_Init();
+void HC_SR04_Trigger();
+float HC_SR04_Get_Distance();
+
+void HC_SR04_Init(){
+	//Bat dau timer vi HC_SR04 can do chinh xac cao
+	HAL_TIM_Base_Start(&htim2);
+}
+
+void HC_SR04_Trigger(){
+	HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
+	//Datasheet bao kich len 10us ma luoi qua nen de 1ms
+	HAL_Delay(1);
+	//Keo chan Trig xuong thap
+	HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
+}
+
+float HC_SR04_Get_Distance(){
+	uint32_t start_CNT;
+	uint32_t end_CNT;
+	uint32_t raw_CNT;			//Tick timer t
+	uint32_t timeout = 60; 	//60ms
+	float distance; 
+	//Step 1: 
+	HC_SR04_Trigger();
+	//Wait cho ECHO len cao
+	uint32_t t0 = HAL_GetTick();
+	while(HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN)==0){
+		//Neu het 60ms ma ko duoc thi tra ve -1
+		if(HAL_GetTick() - t0 >= timeout){
+			return -1;
+		}
+	}
+	start_CNT = htim2.Instance -> CNT;
+	//Wait cho ECHO xuong thap
+	uint32_t t1 = HAL_GetTick();
+	while(HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN)== 1){
+		//Neu het 60ms ma ko duoc thi tra ve -1
+		if(HAL_GetTick() - t1 >= timeout){
+			return -1;
+		}
+	}
+	end_CNT = htim2.Instance -> CNT;
+	//Da luu lai gia tri CNT sau khi ECHO duoc kich
+	raw_CNT = end_CNT - start_CNT;
+	//Chuyen doi 1 lan bang cong thuc eq3: distance = us / 58
+	distance = (float)raw_CNT/58;
+	//Tra ve khoang cach
+	return distance;
+}
 
 /* USER CODE END 0 */
 
@@ -93,10 +150,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
   MX_TIM1_Init();
+  MX_TIM2_Init();
+	
   /* USER CODE BEGIN 2 */
-
+	HC_SR04_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,8 +164,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		DHT_Handle();
-		HAL_Delay(1000);
+//		DHT_Handle();
+//		HAL_Delay(1000);
+//		HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 1);
+//		HAL_Delay(1000);
+//		HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 0);
+//		HAL_Delay(1000);
+		test = HC_SR04_Get_Distance();
+		HAL_Delay(50);
   }
   /* USER CODE END 3 */
 }
@@ -149,40 +213,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
 }
 
 /**
@@ -232,6 +262,51 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 71;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 65535;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -249,14 +324,30 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DHT11_DATA_Pin|LED_SPEAKER_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PA0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(TRIG_PIN_GPIO_Port, TRIG_PIN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : DHT11_DATA_Pin LED_SPEAKER_Pin */
+  GPIO_InitStruct.Pin = DHT11_DATA_Pin|LED_SPEAKER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ECHO_PIN_Pin */
+  GPIO_InitStruct.Pin = ECHO_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ECHO_PIN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : TRIG_PIN_Pin */
+  GPIO_InitStruct.Pin = TRIG_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(TRIG_PIN_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
