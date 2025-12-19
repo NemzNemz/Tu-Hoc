@@ -15,7 +15,7 @@
 - Cấu hình PB9 làm output cho Trig (HC-SR04)
 - Hoàn tất thuật toán đo khoảng cách HC-SR04 dựa trên datasheet
 - Chưa chuyển code HC-SR04 thành thư viện
-## D3 – 14/12/2025
+## D3 – 19/12/2025
 - Thư viện hóa hoàn chỉnh module HC-SR04
 - Xác định Servo SG90 sử dụng PWM
 - Cấu hình TIM3 PWM CH1 (ARR = 20000, PSC = 71)
