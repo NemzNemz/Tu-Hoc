@@ -24,7 +24,7 @@
 - Hoàn tất điều khiển Servo SG90 quay chuẩn 0–180 độ
 - Test logic mù hoàn tất: phát hiện vật cản, kích còi và điều khiển mở/đóng cửa
 - Thư viện hóa hoàn chỉnh Servo SG90
-## D4 – 14/12/2025
+## D4 – 21/12/2025
 - Bắt đầu làm việc với LCD TFT ST7735 1.8 inch
 - Chọn SPI1 trên STM32F103 để giao tiếp với ST7735
 - Mapping SPI1:
