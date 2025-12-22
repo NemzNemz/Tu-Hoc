@@ -38,3 +38,8 @@
 - Hoàn tất code khởi tạo LCD
 - Test fill màu LCD thành công
 - Phát hiện hiện tượng sụt áp khi servo SG90 xoay khiến LCD chập chờn
+## D5 – 22/12/2025
+- Hoàn tất in chữ lên LCD ST7735
+- Hiển thị dữ liệu cảm biến lên LCD thành công
+- Chưa chuyển các module hiển thị thành thư viện
+- Chưa xử lý vấn đề sử dụng delay nhiều trong vòng lặp chính
