@@ -43,3 +43,13 @@
 - Hiển thị dữ liệu cảm biến lên LCD thành công
 - Chưa chuyển các module hiển thị thành thư viện
 - Chưa xử lý vấn đề sử dụng delay nhiều trong vòng lặp chính
+## D6 – 23/12/2025
+- Chuyển chân RST LCD từ PB10 sang PA2 do xung đột với I2C
+- Tạm vô hiệu hóa Servo SG90 do dòng tiêu thụ lớn gây treo MCU
+- Cấp nguồn riêng cho Servo SG90 bằng Arduino UNO
+- Hệ thống tạm thời không còn hiện tượng treo MCU
+- Nhận thấy dây nối quá nhiều gây nhiễu và ảnh hưởng quá trình khởi tạo MCU
+- Cấu hình I2C cho DS3231:
+  - PB10 → I2C SCL
+  - PB11 → I2C SDA
+- Thư viện hóa thành công LCD ST7735
