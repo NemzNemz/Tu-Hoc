@@ -73,12 +73,126 @@ static void MX_I2C2_Init(void);
 #define SPEARKER_PORT			GPIOA
 #define LCD_PORT					GPIOB
 
+//STRUCT THANH GHI DS3231
+typedef struct{
+	uint8_t	sec;
+	uint8_t	min;
+	uint8_t hour;
+	uint8_t	day;
+	uint8_t	date;
+	uint8_t	month;
+	uint8_t	year;
+	uint8_t address;
+}TIMEKEEING_REG;
+
+TIMEKEEING_REG time_reg ={
+	.sec =		0x00,		//00–59
+	.min =		0x01,		//00–59
+	.hour = 	0x02,		//
+	.day =		0x03,		//1–7
+	.date = 	0x04,		//00–31
+	.month = 	0x05,		//
+	.year = 	0x06,		//00–99
+	//Dia chi I2C cua DS3231
+	.address = 0x68 << 1
+};
+
+//STRUCT LUU TRU GIA TRI THOI GIAN
+typedef struct {
+	uint8_t	sec;
+	uint8_t	min;
+	uint8_t hour;
+	uint8_t	day;
+	uint8_t	date;
+	uint8_t	month;
+	uint8_t	year;
+}TIME_VAR;
+TIME_VAR time;
+
+//APIs
+void RTC_INIT(TIME_VAR *time);
+void RTC_Write(TIME_VAR *time);
+void RTC_Read(TIME_VAR *time);
+uint8_t BCD_to_DEC(uint8_t number);
+uint8_t DEC_to_BCD(uint8_t number);
+
+//FUNCTIONs
+void RTC_INIT(TIME_VAR *time){
+	//Khoi tao moi thu bang 0 cai da
+	time->sec =		0;
+	time->min =		0;
+	time->hour =	0;
+	time->day =		0;
+	time->date=		0;
+	time->month =	0;
+	time->year =	0;
+}
+
+void RTC_Write(TIME_VAR *time){
+	uint8_t time_buf[8];
+	//Luon luon bat dau tu thanh ghi second
+	time_buf[0] = time_reg.sec;
+	//Xoa bit CH
+	time_buf[1] = DEC_to_BCD(time->sec) & 0x7F;
+	time_buf[2] = DEC_to_BCD(time->min);
+	//Dinh dang 24h
+	time_buf[3] = DEC_to_BCD(time->hour) & 0x3F;
+	time_buf[4] = DEC_to_BCD(time->day);
+	time_buf[5] = DEC_to_BCD(time->date);
+	time_buf[6] = DEC_to_BCD(time->month);
+	time_buf[7] = DEC_to_BCD(time->year);
+	//Set pointer de ghi het vao struct thoi gian
+	HAL_I2C_Master_Transmit(&hi2c2, time_reg.address, time_buf, 8, 100);
+}
+
+void RTC_Read(TIME_VAR *time){
+	uint8_t time_buf[7];
+	//Dia chi bat dau van la thanh ghi seconds
+	uint8_t start_reg = time_reg.sec;
+	//Set pointer
+	HAL_I2C_Master_Transmit(&hi2c2, time_reg.address, &start_reg, sizeof(start_reg), 100);
+	//Gom data ve
+	HAL_I2C_Master_Receive(&hi2c2, time_reg.address, time_buf, sizeof(time_buf), 100);
+	//Ghi vao tung truong gia tri cua struct
+	time->sec = BCD_to_DEC(time_buf[0]);
+	time->min = BCD_to_DEC(time_buf[1]);
+	time->hour = BCD_to_DEC(time_buf[2]);
+	time->day = BCD_to_DEC(time_buf[3]);
+	time->date = BCD_to_DEC(time_buf[4]);
+	time->month = BCD_to_DEC(time_buf[5]);
+	time->year = BCD_to_DEC(time_buf[6]);
+}
+
+uint8_t BCD_to_DEC(uint8_t number){
+	uint8_t val, high_bit, low_bit;
+	//Hang chuc
+	high_bit = (number >> 4) *10;
+	//Hang dv
+	low_bit = (number & 0x0F);
+	//Cong vao ra dec
+	val = high_bit + low_bit;
+	return val;
+}
+
+uint8_t DEC_to_BCD(uint8_t number){
+	uint8_t hang_chuc, hang_dv, val;
+	hang_chuc = number /10;
+	hang_dv 	= number %10;
+	//OR BIT de ghep no lai
+	val = (hang_chuc << 4) | hang_dv;
+	return val;
+}
+
 volatile float test = 0;
 volatile int nhietdo = 0;
 volatile int do_am = 0;
+//Buf de hien thi tren LCD
 char test_buf[20];
 char nhietdo_buf[20];
 char do_am_buf[20];
+char date_buf[30];
+char time_buf[30];
+
 
 /* USER CODE END 0 */
 
@@ -118,10 +232,25 @@ int main(void)
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
 	HAL_GPIO_WritePin(LCD_PORT, CS_LCD_Pin, 1);
+	RTC_INIT(&time);
 	HC_SR04_Init();
 	servo_init();
-	LCD_Init();
-	LCD_fill_color(0x0000);
+	LCD_Init(); 
+	//Set thoi gian, 1 de set va 0 khi 0 can set nua
+	#if 1
+	time.sec =	1;
+	time.min = 	1;
+	time.hour = 22;
+	time.day = 2;
+	time.date = 25;
+	time.month = 12;
+	time.year = 25;
+	//Ghi de gia tri vao DS3231
+	RTC_Write(&time);
+	HAL_Delay(1000);  
+	#endif
+	LCD_fill_color(0x0000); 
+	LCD_Draw_String(30, 0, "Nha Khon", font_7x10, 0xFFFF, 0x0000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -132,24 +261,32 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 		test = HC_SR04_Get_Distance();
-		HAL_Delay(50);
+		HAL_Delay(100);
 		//Cat bien
 		int dis = (int)test;
 		if(dis > 50) dis = 50;
 		sprintf(test_buf, "%d cm", dis);
 		
 		DHT_Handle();
-		HAL_Delay(250);
+		RTC_Read(&time);
+		HAL_Delay(400);
 		nhietdo = dht.int_T;
 		do_am = dht.int_RH;
 		
 		sprintf(nhietdo_buf, "%d C", nhietdo);
 		sprintf(do_am_buf, "%d %%", do_am);
-		
+		//Hien thi ngay thang nam
+		sprintf(date_buf, "%d/%d/20%d", time.date, time.month, time.year);
+		//Hien thi gio phut giay
+		sprintf(time_buf, "%02d:%02d:%02d", time.hour, time.min, time.sec);
+
 		//Neu nhu gan cua, se tit coi 3 lan va den 3 lan
-		LCD_Draw_String(40, 40, test_buf, font_7x10, 0xFFFF, 0x0000);
+		LCD_Draw_String(20, 20,  date_buf, font_7x10, 0xFFFF, 0x0000);
+		LCD_Draw_String(20, 40,  time_buf, font_7x10, 0xFFFF, 0x0000);
+		LCD_Draw_String(40, 60, test_buf, font_7x10, 0xFFFF, 0x0000);
 		LCD_Draw_String(40, 80, nhietdo_buf, font_7x10, 0xFFFF, 0x0000);
-		LCD_Draw_String(40, 120, do_am_buf, font_7x10, 0xFFFF, 0x0000);
+		LCD_Draw_String(40, 100, do_am_buf, font_7x10, 0xFFFF, 0x0000);
+		
 		if(test <= 10.0){
 			for(uint8_t i =0; i < 3; i++){
 				HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 1);
