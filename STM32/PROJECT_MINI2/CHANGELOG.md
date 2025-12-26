@@ -53,3 +53,10 @@
   - PB10 → I2C SCL
   - PB11 → I2C SDA
 - Thư viện hóa thành công LCD ST7735
+## D7 - 25/12/2025
+-	Hot fix thư viện ST 7735 bị rỗng
+-	Đã làm được DS3231 1 cách cơ bản, nhưng vẫn có hiện tượng khó hiểu đó là lúc sẽ hiện đúng lúc phần hiện thời gian sẽ bị trôi đi 1 biến, dẫn tới kết quả khó hiểu. 
+## D8 - 26/12/2025
+-	Đã hiểu ra mọi vấn đề của DS3231 là do DÂY QUÁ DÀI, I2C nhiễu. fix bằng dây 10cm đã ổn định. Giờ đây treo chỉ do HCSR04 đếm sai do nhiễu, đếm ra -1 là xác định sẽ treo. Đã chạy 51p ổn định liên tục
+-	Chuẩn bị cho module cuối cùng la NEO 6M
+
