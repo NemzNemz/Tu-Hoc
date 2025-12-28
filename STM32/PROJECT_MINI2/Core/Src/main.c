@@ -18,11 +18,13 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "DS3231.h"
 #include "DHT11.h"
 #include "HC_SR04.h"
 #include "SG90.h"
 #include "ST7735.h"
 #include "stdio.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -45,10 +47,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
+
 SPI_HandleTypeDef hspi1;
+
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
@@ -62,6 +68,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_I2C2_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -73,126 +80,21 @@ static void MX_I2C2_Init(void);
 #define SPEARKER_PORT			GPIOA
 #define LCD_PORT					GPIOB
 
-//STRUCT THANH GHI DS3231
-typedef struct{
-	uint8_t	sec;
-	uint8_t	min;
-	uint8_t hour;
-	uint8_t	day;
-	uint8_t	date;
-	uint8_t	month;
-	uint8_t	year;
-	uint8_t address;
-}TIMEKEEING_REG;
-
-TIMEKEEING_REG time_reg ={
-	.sec =		0x00,		//00–59
-	.min =		0x01,		//00–59
-	.hour = 	0x02,		//
-	.day =		0x03,		//1–7
-	.date = 	0x04,		//00–31
-	.month = 	0x05,		//
-	.year = 	0x06,		//00–99
-	//Dia chi I2C cua DS3231
-	.address = 0x68 << 1
-};
-
-//STRUCT LUU TRU GIA TRI THOI GIAN
-typedef struct {
-	uint8_t	sec;
-	uint8_t	min;
-	uint8_t hour;
-	uint8_t	day;
-	uint8_t	date;
-	uint8_t	month;
-	uint8_t	year;
-}TIME_VAR;
-TIME_VAR time;
-
-//APIs
-void RTC_INIT(TIME_VAR *time);
-void RTC_Write(TIME_VAR *time);
-void RTC_Read(TIME_VAR *time);
-uint8_t BCD_to_DEC(uint8_t number);
-uint8_t DEC_to_BCD(uint8_t number);
-
-//FUNCTIONs
-void RTC_INIT(TIME_VAR *time){
-	//Khoi tao moi thu bang 0 cai da
-	time->sec =		0;
-	time->min =		0;
-	time->hour =	0;
-	time->day =		0;
-	time->date=		0;
-	time->month =	0;
-	time->year =	0;
-}
-
-void RTC_Write(TIME_VAR *time){
-	uint8_t time_buf[8];
-	//Luon luon bat dau tu thanh ghi second
-	time_buf[0] = time_reg.sec;
-	//Xoa bit CH
-	time_buf[1] = DEC_to_BCD(time->sec) & 0x7F;
-	time_buf[2] = DEC_to_BCD(time->min);
-	//Dinh dang 24h
-	time_buf[3] = DEC_to_BCD(time->hour) & 0x3F;
-	time_buf[4] = DEC_to_BCD(time->day);
-	time_buf[5] = DEC_to_BCD(time->date);
-	time_buf[6] = DEC_to_BCD(time->month);
-	time_buf[7] = DEC_to_BCD(time->year);
-	//Set pointer de ghi het vao struct thoi gian
-	HAL_I2C_Master_Transmit(&hi2c2, time_reg.address, time_buf, 8, 100);
-}
-
-void RTC_Read(TIME_VAR *time){
-	uint8_t time_buf[7];
-	//Dia chi bat dau van la thanh ghi seconds
-	uint8_t start_reg = time_reg.sec;
-	//Set pointer
-	HAL_I2C_Master_Transmit(&hi2c2, time_reg.address, &start_reg, sizeof(start_reg), 100);
-	//Gom data ve
-	HAL_I2C_Master_Receive(&hi2c2, time_reg.address, time_buf, sizeof(time_buf), 100);
-	//Ghi vao tung truong gia tri cua struct
-	time->sec = BCD_to_DEC(time_buf[0]);
-	time->min = BCD_to_DEC(time_buf[1]);
-	time->hour = BCD_to_DEC(time_buf[2]);
-	time->day = BCD_to_DEC(time_buf[3]);
-	time->date = BCD_to_DEC(time_buf[4]);
-	time->month = BCD_to_DEC(time_buf[5]);
-	time->year = BCD_to_DEC(time_buf[6]);
-}
-
-uint8_t BCD_to_DEC(uint8_t number){
-	uint8_t val, high_bit, low_bit;
-	//Hang chuc
-	high_bit = (number >> 4) *10;
-	//Hang dv
-	low_bit = (number & 0x0F);
-	//Cong vao ra dec
-	val = high_bit + low_bit;
-	return val;
-}
-
-uint8_t DEC_to_BCD(uint8_t number){
-	uint8_t hang_chuc, hang_dv, val;
-	hang_chuc = number /10;
-	hang_dv 	= number %10;
-	//OR BIT de ghep no lai
-	val = (hang_chuc << 4) | hang_dv;
-	return val;
-}
-
 volatile float test = 0;
 volatile int nhietdo = 0;
 volatile int do_am = 0;
+//Thoi gian mo cua
+uint32_t timeout = 3000;
+uint32_t tickstart;
+uint8_t door_state;
+//Khai bao struct luu tru thoi gian o day
+TIME_VAR time;
 //Buf de hien thi tren LCD
 char test_buf[20];
 char nhietdo_buf[20];
 char do_am_buf[20];
 char date_buf[30];
 char time_buf[30];
-
 
 /* USER CODE END 0 */
 
@@ -230,6 +132,7 @@ int main(void)
   MX_TIM3_Init();
   MX_SPI1_Init();
   MX_I2C2_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	HAL_GPIO_WritePin(LCD_PORT, CS_LCD_Pin, 1);
 	RTC_INIT(&time);
@@ -287,19 +190,28 @@ int main(void)
 		LCD_Draw_String(40, 80, nhietdo_buf, font_7x10, 0xFFFF, 0x0000);
 		LCD_Draw_String(40, 100, do_am_buf, font_7x10, 0xFFFF, 0x0000);
 		
-		if(test <= 10.0){
+		if(test <= 8.0 && door_state == 0){
 			for(uint8_t i =0; i < 3; i++){
 				HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 1);
 				HAL_Delay(250);
 				HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 0);
 				HAL_Delay(250);
 			}
-			//Mo cua 3s
+			//Mo cua goc quay 90 do
 			servo_change_angle(90);
-			HAL_Delay(3000);
+			//Trang thai cua danh dau da mo
+			door_state = 1;
+			//Bat dau doc thoi gian
+			tickstart = HAL_GetTick();
+		}
+		
+		//Neu nhu dem du 3s, cua se dong
+		if(HAL_GetTick() - tickstart >= timeout && door_state == 1){
 			//Dong cua
 			servo_change_angle(0);
+			door_state = 0;
 		}
+
 		else HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 0);
 		}
   /* USER CODE END 3 */
@@ -557,6 +469,39 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -585,6 +530,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : INTERRUPT_PIN_Pin */
+  GPIO_InitStruct.Pin = INTERRUPT_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(INTERRUPT_PIN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CS_LCD_Pin A0_LCD_Pin TRIG_PIN_Pin */
   GPIO_InitStruct.Pin = CS_LCD_Pin|A0_LCD_Pin|TRIG_PIN_Pin;

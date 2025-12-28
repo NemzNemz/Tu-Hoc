@@ -59,4 +59,12 @@
 ## D8 - 26/12/2025
 -	Đã hiểu ra mọi vấn đề của DS3231 là do DÂY QUÁ DÀI, I2C nhiễu. fix bằng dây 10cm đã ổn định. Giờ đây treo chỉ do HCSR04 đếm sai do nhiễu, đếm ra -1 là xác định sẽ treo. Đã chạy 51p ổn định liên tục
 -	Chuẩn bị cho module cuối cùng la NEO 6M
+## D9 - 28/12/2025
+-	Thư viện hoá DS3231 hoàn tất
+-	Chuyển việc mở cửa delay 3s thành HAL_Get_Ticks để tránh độ trễ quá lớn, hệ thống hiện tại trông mượt mà hơn đáng kể
+-	Đã tách logic mở cửa và logic tính ticktime ra riêng, ko bị lồng vào dẫn đến điều kiện sẽ không bao giờ đạt được
+-	Đã đặt antena NEO 6M về để chuẩn bị hoàn tất dự án
+-	Đã lựa chọn phương thức jump to application là bằng 1 nút nhấn. Nút nhấn này sẽ được set như 1 cái ngắt ngoài. Khi ngắt ngoài, cờ jump to application set lên 1
+-	GPIO PA3 được chọn làm GPIO_EXIT3 làm ngắt ngoài
+-	Khi biến cờ set lên 1 mới jump to applcation. Keypad đã được xác định sẽ loại bỏ vì thiếu nghiêm trọng GPIO. Tính năng update OTA qua ESP32 Web Server đang được cân nhắc loại bỏ vì vấn đề tương tự. 
 
