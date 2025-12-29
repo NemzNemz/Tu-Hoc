@@ -67,4 +67,10 @@
 -	Đã lựa chọn phương thức jump to application là bằng 1 nút nhấn. Nút nhấn này sẽ được set như 1 cái ngắt ngoài. Khi ngắt ngoài, cờ jump to application set lên 1
 -	GPIO PA3 được chọn làm GPIO_EXIT3 làm ngắt ngoài
 -	Khi biến cờ set lên 1 mới jump to applcation. Keypad đã được xác định sẽ loại bỏ vì thiếu nghiêm trọng GPIO. Tính năng update OTA qua ESP32 Web Server đang được cân nhắc loại bỏ vì vấn đề tương tự. 
-
+## D10 - 29/12/2025
+-	Đã code xong bootloader, đã thư viện hoá hoàn tất 
+-	Có tranh cãi rằng bootloader này (là bản thân chương trình chính) là 1 application khác. Bản chất dự án này đang là application to application. Có lẽ sẽ đổi thành application có khả năng jump to application khác
+-	Sử dụng PB15 thay vì PA3 làm EXIT15
+-	Đã xử lý vấn đề nhiễu bằng tụ hoá 1uF, khắc phục vấn đề ko làm gì cũng tự nhảy vào Application
+-	Đã test ngắt thành công, code đã nhận, nhảy qua Application
+-	Tạm chưa code Application
