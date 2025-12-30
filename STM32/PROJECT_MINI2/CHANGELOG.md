@@ -83,5 +83,3 @@
 -	NEO 6M vẫn chưa về nên vẫn chưa thể thêm tính năng bắt thời gian thực
 -	Cơ chế hoạt động của dự án cá nhân xem như đã hoàn tất
 - Đã đủ vui để mai đi chơi sinh nhật của chính mình
-
->>>>>>> ae4025a (D11 – Hoan tat Application, fix HAL_Delay khi jump app, dong du an)
