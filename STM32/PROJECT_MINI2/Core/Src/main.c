@@ -23,8 +23,8 @@
 #include "HC_SR04.h"
 #include "SG90.h"
 #include "ST7735.h"
+#include "BOOTLOADER.h"
 #include "stdio.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -79,22 +79,66 @@ static void MX_USART1_UART_Init(void);
 #define	SPEARKER					GPIO_PIN_1	//PA1
 #define SPEARKER_PORT			GPIOA
 #define LCD_PORT					GPIOB
+//Bootloader va Application
+#define ADDR_APP_PROGRAM 	0x08006400	//Page 25
+#define BASE_ADDR 				0x08000000
+typedef void(*pFunction)(void);
 
 volatile float test = 0;
 volatile int nhietdo = 0;
 volatile int do_am = 0;
+
 //Thoi gian mo cua
 uint32_t timeout = 3000;
 uint32_t tickstart;
+
+//Trang thai cua
 uint8_t door_state;
+
+//Flag bao jump to application
+volatile uint8_t j2a_flag;
+
 //Khai bao struct luu tru thoi gian o day
 TIME_VAR time;
+
 //Buf de hien thi tren LCD
 char test_buf[20];
 char nhietdo_buf[20];
 char do_am_buf[20];
 char date_buf[30];
 char time_buf[30];
+
+//Ham ngat
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == INT_PIN_Pin)
+    {
+        if (HAL_GPIO_ReadPin(GPIOB, INT_PIN_Pin) == 0)
+        {
+            j2a_flag = 1;
+        }
+    }
+}
+
+void jump_to_app(){
+	//Tat tat ca ngat dang enable
+	__disable_irq();
+	//Ngat Systick, APB
+	HAL_RCC_DeInit();		//Reset Clock
+	HAL_DeInit();				//Lam sach cau hinh HAL
+	
+	//Tat ngat loi
+	SCB ->SHCSR &=  ~(SCB_SHCSR_USGFAULTENA_Msk |
+										SCB_SHCSR_BUSFAULTENA_Msk |
+										SCB_SHCSR_MEMFAULTENA_Msk);
+	
+	//Set lai Main Stack Pointer
+	__set_MSP(*(__IO uint32_t*) ADDR_APP_PROGRAM);
+	
+	//Nhay va Reset Handler
+	pFunction app_entry = (pFunction)(*(__IO uint32_t*) (ADDR_APP_PROGRAM + 4));
+	app_entry();
+}
 
 /* USER CODE END 0 */
 
@@ -134,6 +178,7 @@ int main(void)
   MX_I2C2_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+	__HAL_GPIO_EXTI_CLEAR_IT(INT_PIN_Pin);
 	HAL_GPIO_WritePin(LCD_PORT, CS_LCD_Pin, 1);
 	RTC_INIT(&time);
 	HC_SR04_Init();
@@ -148,6 +193,7 @@ int main(void)
 	time.date = 25;
 	time.month = 12;
 	time.year = 25;
+	j2a_flag = 0;
 	//Ghi de gia tri vao DS3231
 	RTC_Write(&time);
 	HAL_Delay(1000);  
@@ -203,16 +249,22 @@ int main(void)
 			door_state = 1;
 			//Bat dau doc thoi gian
 			tickstart = HAL_GetTick();
-		}
+		}else HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 0);
 		
 		//Neu nhu dem du 3s, cua se dong
 		if(HAL_GetTick() - tickstart >= timeout && door_state == 1){
 			//Dong cua
 			servo_change_angle(0);
 			door_state = 0;
-		}
-
-		else HAL_GPIO_WritePin(SPEARKER_PORT, SPEARKER, 0);
+		} 
+		
+		//Nhay vao application 
+		if(j2a_flag == 1) {
+			LCD_Draw_String(40, 120, "JUMP TO APP", font_7x10, 0xFFFF, 0x0000);
+			LCD_Draw_String(40, 140, "DONG CUA", font_7x10, 0xFFFF, 0x0000);
+			HAL_Delay(2000);
+			jump_to_app();
+			}
 		}
   /* USER CODE END 3 */
 }
@@ -531,12 +583,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : INTERRUPT_PIN_Pin */
-  GPIO_InitStruct.Pin = INTERRUPT_PIN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(INTERRUPT_PIN_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : CS_LCD_Pin A0_LCD_Pin TRIG_PIN_Pin */
   GPIO_InitStruct.Pin = CS_LCD_Pin|A0_LCD_Pin|TRIG_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -544,11 +590,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : INT_PIN_Pin */
+  GPIO_InitStruct.Pin = INT_PIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(INT_PIN_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : ECHO_PIN_Pin */
   GPIO_InitStruct.Pin = ECHO_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ECHO_PIN_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 

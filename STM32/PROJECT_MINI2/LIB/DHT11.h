@@ -11,6 +11,8 @@ typedef struct{
 	uint8_t checksum;
 }DHT11_VAR;
 
+extern DHT11_VAR dht;
+//API
 void delay_us(uint16_t time_us);
 void delay_ms(uint16_t time_ms);
 void DHT_Start(void);
