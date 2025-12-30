@@ -74,3 +74,14 @@
 -	Đã xử lý vấn đề nhiễu bằng tụ hoá 1uF, khắc phục vấn đề ko làm gì cũng tự nhảy vào Application
 -	Đã test ngắt thành công, code đã nhận, nhảy qua Application
 -	Tạm chưa code Application
+<<<<<<< HEAD
+=======
+## D11 - 30/12/2025
+-	Hoàn tất code Application
+-	Xuất hiện lỗi đó là HAL_Delay ko thể sử dụng. Chỉ cần xuất hiện là treo
+-	Giaỉ pháp đã tìm thấy trên ST_Community, đó là chỉ cần cho cái địa chỉ Application tăng thêm 4 đơn vị, đồng thời thêm dòng __enable_irq(); Vấn đề đã được fix
+-	NEO 6M vẫn chưa về nên vẫn chưa thể thêm tính năng bắt thời gian thực
+-	Cơ chế hoạt động của dự án cá nhân xem như đã hoàn tất
+- Đã đủ vui để mai đi chơi sinh nhật của chính mình
+
+>>>>>>> ae4025a (D11 – Hoan tat Application, fix HAL_Delay khi jump app, dong du an)
