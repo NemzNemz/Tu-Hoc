@@ -94,7 +94,7 @@
 <img src="images/a5.jpg" width="600">
 
 - Cửa mở trong 3s sau đó đóng:
-- 
+  
 <img src="images/a4.jpg" width="600">
 
 -Khi ấn nút, hệ thống vào trạng thái ngắt:
