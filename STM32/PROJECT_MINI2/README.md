@@ -85,9 +85,17 @@
 ---
 
 ## Demo hoạt động
-
-<img src="images/a1.jpg" width="600">
+-Khi ở trạng thái bình thường:
 <img src="images/a2.jpg" width="600">
-<img src="images/a3.jpg" width="600">
-<img src="images/a4.jpg" width="600">
+
+-Khi gặp vật cản dưới 8cm sẽ báo còi và đèn:
 <img src="images/a5.jpg" width="600">
+
+- Cửa mở trong 3s sau đó đóng:
+<img src="images/a4.jpg" width="600">
+
+-Khi ấn nút, hệ thống vào trạng thái ngắt:
+<img src="images/a1.jpg" width="600">
+
+- Đã jump to application, nhà không hiển thị data mà chỉ báo còi liên tục và không cho vào
+<img src="images/a3.jpg" width="600">
