@@ -1,8 +1,8 @@
-=======
-# MINI PROJECT 2 – STM32 SMART HOME (BARE-METAL)
+
+# MINI PROJECT 2 – STM32 HOME
 
 ## 1. Tổng quan dự án
-- Dự án nhà thông minh chạy độc lập trên STM32
+- Dự án nhà "Khôn" chạy độc lập trên STM32
 - Mục tiêu chính:
   - Ôn tập lại toàn bộ kiến thức đã tự học
   - Thử nghiệm các kiến thức cũ và mới trong quá trình tự học STM32
