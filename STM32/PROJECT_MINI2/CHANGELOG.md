@@ -83,3 +83,8 @@
 -	NEO 6M vẫn chưa về nên vẫn chưa thể thêm tính năng bắt thời gian thực
 -	Cơ chế hoạt động của dự án cá nhân xem như đã hoàn tất
 - Đã đủ vui để mai đi chơi sinh nhật của chính mình
+## D12 – 03/01/2026
+- Loại bỏ module GPS NEO-6M do không phù hợp với phạm vi dự án
+- Sử dụng ESP32 (time.gov / NTP) để đồng bộ thời gian và truyền sang STM32
+- Tiếp tục sử dụng USART1 cho giao tiếp ESP32 → STM32
+- Dự án cá nhân được xem là hoàn tất
