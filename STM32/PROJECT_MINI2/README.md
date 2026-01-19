@@ -81,3 +81,13 @@
 - Hệ thống chạy ổn định trong thời gian dài (>2 giờ)
 - Các vấn đề phần cứng chính đã được xác định và xử lý
 - Dự án được xem là hoàn thành
+
+---
+
+## Demo hoạt động
+
+<img src="images/a1.jpg" width="600">
+<img src="images/a2.jpg" width="600">
+<img src="images/a3.jpg" width="600">
+<img src="images/a4.jpg" width="600">
+<img src="images/a5.jpg" width="600">
