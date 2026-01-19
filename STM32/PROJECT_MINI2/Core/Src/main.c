@@ -25,6 +25,8 @@
 #include "ST7735.h"
 #include "BOOTLOADER.h"
 #include "stdio.h"
+#include "string.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -75,18 +77,25 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 #define	SPEARKER					GPIO_PIN_1	//PA1
 #define SPEARKER_PORT			GPIOA
 #define LCD_PORT					GPIOB
 //Bootloader va Application
-#define ADDR_APP_PROGRAM 	0x08006400	//Page 25
+#define ADDR_APP_PROGRAM 	0x0800B400	//Page 25
 #define BASE_ADDR 				0x08000000
 typedef void(*pFunction)(void);
 
 volatile float test = 0;
 volatile int nhietdo = 0;
 volatile int do_am = 0;
+
+// ===== THÊM PH?N NÀY =====
+char rxBuf[30];
+uint8_t rxIndex = 0;
+uint8_t receivedChar = 0;
+uint8_t timeSyncDone = 0;
+TIME_VAR syncedTime;
+// ===== H?T PH?N THÊM =====
 
 //Thoi gian mo cua
 uint32_t timeout = 3000;
@@ -124,8 +133,8 @@ void jump_to_app(){
 	//Tat tat ca ngat dang enable
 	__disable_irq();
 	//Ngat Systick, APB
-	HAL_RCC_DeInit();		//Reset Clock
-	HAL_DeInit();				//Lam sach cau hinh HAL
+	//HAL_RCC_DeInit();		//Reset Clock
+	//HAL_DeInit();				//Lam sach cau hinh HAL
 	
 	//Tat ngat loi
 	SCB ->SHCSR &=  ~(SCB_SHCSR_USGFAULTENA_Msk |
@@ -139,6 +148,45 @@ void jump_to_app(){
 	pFunction app_entry = (pFunction)(*(__IO uint32_t*) (ADDR_APP_PROGRAM + 4));
 	app_entry();
 }
+
+// ===== THÊM CALLBACK UART =====
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART1 && !timeSyncDone)
+  {
+    rxBuf[rxIndex++] = receivedChar;
+
+    if (receivedChar == '\n' || rxIndex >= sizeof(rxBuf) - 1)
+    {
+      rxBuf[rxIndex - 1] = '\0';
+      
+      int h, m, s, d, mo, y;
+      if (sscanf(rxBuf, "%d:%d:%d %d/%d/%d", &h, &m, &s, &d, &mo, &y) == 6)
+      {
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 &&
+            d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && y >= 2000)
+        {
+          syncedTime.sec   = s;
+          syncedTime.min   = m;
+          syncedTime.hour  = h;
+          syncedTime.day   = 1;
+          syncedTime.date  = d;
+          syncedTime.month = mo;
+          syncedTime.year  = y % 100;
+          
+          timeSyncDone = 1;
+        }
+      }
+      rxIndex = 0;
+      memset(rxBuf, 0, sizeof(rxBuf));
+    }
+
+    if (!timeSyncDone) {
+      HAL_UART_Receive_IT(&huart1, &receivedChar, 1);
+    }
+  }
+}
+// ===== HET CALLBACK =====
 
 /* USER CODE END 0 */
 
@@ -184,20 +232,51 @@ int main(void)
 	HC_SR04_Init();
 	servo_init();
 	LCD_Init(); 
-	//Set thoi gian, 1 de set va 0 khi 0 can set nua
-	#if 1
-	time.sec =	1;
-	time.min = 	1;
-	time.hour = 22;
-	time.day = 2;
-	time.date = 25;
-	time.month = 12;
-	time.year = 25;
+	//Lay thoi gian thuc tu ESP32 qua
+	LCD_fill_color(0x0000);
+	LCD_Draw_String(10, 50, "Syncing time...", font_7x10, 0xFFFF, 0x0000);
+	//Bat dau nhan UART
+	HAL_UART_Receive_IT(&huart1, &receivedChar, 1);
+	
+	// Ð?i sync t?i da 15 giây
+	uint32_t syncStart = HAL_GetTick();
+	while (!timeSyncDone && (HAL_GetTick() - syncStart < 15000))
+	{
+		HAL_Delay(100);
+	}
+	
+	// Ki?m tra k?t qu?
+	if (timeSyncDone)
+	{
+		// Thành công: Ghi time t? ESP32 vào DS3231
+		RTC_Write(&syncedTime);
+		// Xóa ch? vùng "Syncing time..." (y=50)
+		LCD_Draw_String(10, 70, "Time synced!", font_7x10, 0x07E0, 0x0000); // Màu xanh
+		HAL_Delay(2000);
+		LCD_fill_color(0xFFFF);
+	}
+	else
+	{
+		// Th?t b?i: Dùng time m?c d?nh
+		LCD_Draw_String(10, 70, "Using default", font_7x10, 0xF800, 0x0000); // Màu do
+		HAL_Delay(2000);
+		LCD_fill_color(0xFFFF);
+		HAL_Delay(2000);
+		//Set thoi gian, 1 de set va 0 khi 0 can set nua
+		time.sec =	1;
+		time.min = 	1;
+		time.hour = 22;
+		time.day = 2;
+		time.date = 25;
+		time.month = 12;
+		time.year = 25;
+		//Ghi de gia tri vao DS3231
+		RTC_Write(&time);
+		HAL_Delay(1000);  
+	}
+	
+	
 	j2a_flag = 0;
-	//Ghi de gia tri vao DS3231
-	RTC_Write(&time);
-	HAL_Delay(1000);  
-	#endif
 	LCD_fill_color(0x0000); 
 	LCD_Draw_String(30, 0, "Nha Khon", font_7x10, 0xFFFF, 0x0000);
   /* USER CODE END 2 */
